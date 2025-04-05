@@ -1,0 +1,26 @@
+{
+  "tasks": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "test": "deno test --no-check",
+    "fmt": "deno fmt",
+    "lint": "deno run --allow-env --allow-read --allow-run npm:oxlint@latest"
+  },
+  "nodeModulesDir": "auto",
+  "imports": {
+    "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.4",
+    "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.3",
+    "solid-js": "npm:solid-js@^1.9.5",
+    "tailwindcss": "npm:tailwindcss@^4.1.3",
+    "typescript": "npm:typescript@^5.7.2",
+    "ulid": "npm:ulid@^3.0.0",
+    "vite": "npm:vite@^6.0.0",
+    "vite-plugin-solid": "npm:vite-plugin-solid@^2.11.6"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "solid-js",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"]
+  }
+}

@@ -5,6 +5,7 @@
 - place squares (adjustable border radius, fill, border)
 - place lines (ends: arrow, filled arrow, rounded, default)
 - place icons / images
+- place table
 - group items / item hierarchy
 - flex / grid / repeat layout
 - click item to edit
