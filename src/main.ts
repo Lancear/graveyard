@@ -1,10 +1,57 @@
-export function add(a: number, b: number): number {
-  return a + b;
+import { MongoClient } from "mongodb";
+import { MongoDbLogDestination } from "./monitoring/log-destinations/mongodb.ts";
+import { requestMonitor } from "./monitoring/middlewares/request-monitor.ts";
+import { logger, monitoring } from "./monitoring/monitoring.ts";
+import { neverNullish } from "./utils/optional.ts";
+
+try {
+  const databaseUrl = neverNullish(
+    Deno.env.get("DATABASE_URL"),
+    "DATABASE_ENV is a required env variable",
+  );
+
+  logger.info("Connecting to database...");
+  const database = await connectToDb(databaseUrl);
+  logger.info("Connected to database");
+
+  logger.info("Connecting logger to database...");
+  logger.setDestination(
+    new MongoDbLogDestination(database.collection("logs"), {
+      consoleLogs: true,
+    }),
+  );
+  logger.info("Connected logger to database");
+
+  logger.info("Starting server...");
+  Deno.serve(
+    {
+      hostname: "localhost",
+      port: 3000,
+      onListen() {
+        logger.info("Serving at http://localhost:3000");
+      },
+    },
+    requestMonitor((req) => {
+      const { pathname } = new URL(req.url);
+      logger.info("Path " + pathname);
+      return new Response(undefined, { status: 200 });
+    }),
+  );
+} catch (err) {
+  logger.error(err);
+  await logger.flush();
+  Deno.exit(1);
 }
 
-console.log(Deno.env.get("DATABASE"));
-
-// Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
-if (import.meta.main) {
-  console.log("Add 2 + 3 =", add(2, 3));
+async function connectToDb(databaseUrl: string) {
+  try {
+    const client = new MongoClient(databaseUrl);
+    await client.connect();
+    return client.db();
+  } catch (err) {
+    throw monitoring.newError("Failed to connect to the database", {
+      data: { databaseUrl },
+      cause: err,
+    });
+  }
 }
