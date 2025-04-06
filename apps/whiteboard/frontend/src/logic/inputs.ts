@@ -2,11 +2,12 @@ import type { Accessor, Setter } from "solid-js";
 import { createSignal } from "solid-js";
 import { ulid } from "ulid";
 import type { Point } from "../domain.ts";
-import { toFixed } from "../utils.ts";
+import { between, toFixed } from "../utils.ts";
 import type { RendererState } from "./renderer.ts";
 import {
   getRectangleSize,
   normalizeRectangle,
+  toWhiteboardPoint,
   type WhiteboardState,
 } from "./whiteboard.ts";
 
@@ -20,11 +21,11 @@ export type InputMode =
 export interface InputState {
   inputMode: Accessor<InputMode>;
   mouseDownEvent: Accessor<MouseEvent | undefined>;
-  selectedTextInput: Accessor<HTMLElement | undefined>;
+  selectedNodeIds: Accessor<string[]>;
 
   setInputMode: Setter<InputMode>;
   setMouseDownEvent: Setter<MouseEvent | undefined>;
-  setSelectedTextInput: Setter<HTMLElement | undefined>;
+  setSelectedNodeIds: Setter<string[]>;
 }
 
 export function createInputState() {
@@ -36,19 +37,15 @@ export function createInputState() {
     undefined,
   );
 
-  const [selectedTextInput, setSelectedTextInput] = createSignal<
-    HTMLElement | undefined
-  >(
-    undefined,
-  );
+  const [selectedNodeIds, setSelectedNodeIds] = createSignal<string[]>([]);
 
   return {
     inputMode,
     setInputMode,
     mouseDownEvent,
     setMouseDownEvent,
-    selectedTextInput,
-    setSelectedTextInput,
+    selectedNodeIds,
+    setSelectedNodeIds,
   };
 }
 
@@ -68,9 +65,6 @@ interface InputHandlers {
 
 const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
   select: {
-    onMouseDown(e, { input }) {
-      input.setMouseDownEvent(e);
-    },
     onMouseMove(currMousePos, { input, renderer }) {
       const ctx = renderer.shapeEditingLayer();
       if (!ctx) return;
@@ -96,22 +90,40 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
       ctx.fillStyle = "#e1c49d66";
       ctx.strokeStyle = "#d0b46599";
     },
-    onMouseUp(_e, { input, renderer }) {
-      input.setMouseDownEvent(undefined);
+    onMouseUp(mouseUp, { whiteboard, input }) {
+      const mouseDown = input.mouseDownEvent();
+      if (!mouseDown) return;
 
-      const rendererSize = renderer.size();
-      renderer.shapeEditingLayer()?.clearRect(
-        0,
-        0,
-        rendererSize.w,
-        rendererSize.h,
-      );
+      const rect = normalizeRectangle(mouseUp, mouseDown);
+      const size = getRectangleSize(rect.topLeft, rect.bottomRight);
+
+      if (size.h * size.w < 4) {
+        const whiteboardClick = toWhiteboardPoint(whiteboard, mouseUp);
+
+        const clickedNode = whiteboard.nodes().find((n) =>
+          between(whiteboardClick.x, n.topLeft.x, n.bottomRight.x) &&
+          between(whiteboardClick.y, n.topLeft.y, n.bottomRight.y)
+        );
+
+        if (clickedNode) {
+          input.setSelectedNodeIds([clickedNode.id]);
+        }
+      } else {
+        const topLeft = toWhiteboardPoint(whiteboard, rect.topLeft);
+        const bottomRight = toWhiteboardPoint(whiteboard, rect.bottomRight);
+
+        const selectedNodes = whiteboard.nodes().filter((n) =>
+          between(n.topLeft.x, topLeft.x, bottomRight.x) &&
+          between(n.topLeft.y, topLeft.y, bottomRight.y) &&
+          between(n.bottomRight.x, topLeft.x, bottomRight.x) &&
+          between(n.bottomRight.y, topLeft.y, bottomRight.y)
+        );
+
+        input.setSelectedNodeIds(selectedNodes.map((n) => n.id));
+      }
     },
   },
   move: {
-    onMouseDown(e, { input }) {
-      input.setMouseDownEvent(e);
-    },
     onMouseMove(
       currMousePos,
       { whiteboard, input },
@@ -123,55 +135,29 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
         y: old.y - currMousePos.movementY,
       }));
     },
-    onMouseUp(_e, { input }) {
-      input.setMouseDownEvent(undefined);
-    },
   },
   text: {
-    onClick(click, { whiteboard, input, renderer }) {
-      const currTextInput = input.selectedTextInput();
+    onClick(click, { whiteboard, input }) {
+      input.setSelectedNodeIds([]);
 
-      if (currTextInput) {
-        if (!(currTextInput as HTMLTextAreaElement).value) {
-          renderer.textLayer.ref?.removeChild(currTextInput);
-        } else {
-          const rect = currTextInput.getBoundingClientRect();
+      const zoom = whiteboard.zoom();
+      const id = ulid();
+      whiteboard.addNodeFromScreen({
+        id,
+        name: "Text",
+        type: "text",
+        topLeft: { x: click.x - 8, y: click.y - 18 },
+        bottomRight: {
+          x: click.x + (24 * 4 * zoom),
+          y: click.y + (9 * 4 * zoom),
+        },
+        markdown: "",
+      });
 
-          whiteboard.addNodeFromScreen({
-            id: ulid(),
-            name: (currTextInput as HTMLTextAreaElement).value,
-            type: "text",
-            topLeft: { x: rect.left, y: rect.top },
-            bottomRight: { x: rect.bottom, y: rect.right },
-            markdown: (currTextInput as HTMLTextAreaElement).value,
-          });
-
-          input.setSelectedTextInput(undefined);
-        }
-      }
-
-      const textInput = document.createElement("textarea");
-      textInput.addEventListener("click", (e) => e.stopPropagation());
-      textInput.addEventListener("mouseup", (e) => e.stopPropagation());
-      textInput.addEventListener("mousedown", (e) => e.stopPropagation());
-      textInput.addEventListener("wheel", (e) => e.stopPropagation());
-      textInput.placeholder = "Insert Text";
-      textInput.className =
-        "resize-none focus:resize h-9 w-24 px-2 py-1 rounded border border-dashed border-transparent focus:border-[#d0b465cc] focus:outline-none";
-      textInput.style.position = "absolute";
-      textInput.style.top = click.y - (4.5 * 4) + "px";
-      textInput.style.left = click.x - (2 * 4) + "px";
-
-      input.setSelectedTextInput(
-        renderer.textLayer.ref?.appendChild(textInput),
-      );
-      textInput.focus();
+      input.setSelectedNodeIds([id]);
     },
   },
   rectangle: {
-    onMouseDown(e, { input }) {
-      input.setMouseDownEvent(e);
-    },
     onMouseMove(currMousePos, { input, renderer }) {
       const ctx = renderer.shapeEditingLayer();
       if (!ctx) return;
@@ -192,7 +178,7 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
       ctx.roundRect(topLeft.x, topLeft.y, size.w, size.h);
       ctx.stroke();
     },
-    onMouseUp(mouseUp, { whiteboard, input, renderer }) {
+    onMouseUp(mouseUp, { whiteboard, input }) {
       const mouseDown = input.mouseDownEvent();
       if (!mouseDown) return;
 
@@ -210,22 +196,9 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
           strokeColour: "#c75249",
         });
       }
-
-      input.setMouseDownEvent(undefined);
-
-      const rendererSize = renderer.size();
-      renderer.shapeEditingLayer()?.clearRect(
-        0,
-        0,
-        rendererSize.w,
-        rendererSize.h,
-      );
     },
   },
   line: {
-    onMouseDown(e, { input }) {
-      input.setMouseDownEvent(e);
-    },
     onMouseMove(
       currMousePos,
       { input, renderer },
@@ -243,7 +216,7 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
       ctx.lineTo(currMousePos.x, currMousePos.y);
       ctx.stroke();
     },
-    onMouseUp(mouseUp, { whiteboard, input, renderer }) {
+    onMouseUp(mouseUp, { whiteboard, input }) {
       const mouseDown = input.mouseDownEvent();
       if (!mouseDown) return;
 
@@ -259,16 +232,6 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
         end: { x: mouseUp.x, y: mouseUp.y },
         strokeColour: "#c75249",
       });
-
-      input.setMouseDownEvent(undefined);
-
-      const rendererSize = renderer.size();
-      renderer.shapeEditingLayer()?.clearRect(
-        0,
-        0,
-        rendererSize.w,
-        rendererSize.h,
-      );
     },
   },
 };
@@ -302,9 +265,16 @@ export function zoom(
 export function getHandlers(state: InputHandlerState) {
   return {
     onClick(e: MouseEvent) {
-      INPUT_MODE_HANDLERS[state.input.inputMode()].onClick?.(e, state);
+      const inputMode = state.input.inputMode();
+
+      if (inputMode !== "select") {
+        state.input.setSelectedNodeIds([]);
+      }
+
+      INPUT_MODE_HANDLERS[inputMode].onClick?.(e, state);
     },
     onMouseDown(e: MouseEvent) {
+      state.input.setMouseDownEvent(e);
       INPUT_MODE_HANDLERS[state.input.inputMode()].onMouseDown?.(e, state);
     },
     onMouseMove(e: MouseEvent) {
@@ -312,6 +282,15 @@ export function getHandlers(state: InputHandlerState) {
     },
     onMouseUp(e: MouseEvent) {
       INPUT_MODE_HANDLERS[state.input.inputMode()].onMouseUp?.(e, state);
+
+      state.input.setMouseDownEvent(undefined);
+      const rendererSize = state.renderer.size();
+      state.renderer.shapeEditingLayer()?.clearRect(
+        0,
+        0,
+        rendererSize.w,
+        rendererSize.h,
+      );
     },
     onWheel(e: WheelEvent) {
       zoom(state, e.deltaY > 0 ? -0.1 : 0.1, e);

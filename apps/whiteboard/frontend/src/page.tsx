@@ -13,6 +13,7 @@ import { createRendererState } from "./logic/renderer.ts";
 import {
   createWhiteboardState,
   getNodeScreenSize,
+  getRectangleSize,
   toScreenPoint,
 } from "./logic/whiteboard.ts";
 import { cls } from "./utils.ts";
@@ -31,49 +32,92 @@ export function Page() {
     const ctx = renderer.shapeLayer();
     if (!ctx) return;
 
+    const nodes = whiteboard.nodes();
+    const selectedNodeIds = input.selectedNodeIds();
     const rendererSize = renderer.size();
+
     ctx.clearRect(0, 0, rendererSize.w, rendererSize.h);
+    ctx.strokeStyle = "#524319";
 
     while (renderer.textLayer.ref?.firstChild) {
       renderer.textLayer.ref.removeChild(renderer.textLayer.ref.firstChild);
     }
 
-    for (const node of whiteboard.nodes()) {
+    for (const node of nodes) {
       if (node.type === "rectangle") {
         const topLeft = toScreenPoint(whiteboard, node.topLeft);
         const { w, h } = getNodeScreenSize(whiteboard, node);
 
+        if (selectedNodeIds.includes(node.id)) {
+          ctx.strokeStyle = "#c75249";
+        }
+
         ctx.beginPath();
         ctx.roundRect(topLeft.x, topLeft.y, w, h);
         ctx.stroke();
+        ctx.strokeStyle = "#524319";
       }
 
       if (node.type === "line") {
         const start = toScreenPoint(whiteboard, node.start);
         const end = toScreenPoint(whiteboard, node.end);
 
+        if (selectedNodeIds.includes(node.id)) {
+          ctx.strokeStyle = "#c75249";
+        }
+
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
         ctx.stroke();
+        ctx.strokeStyle = "#524319";
       }
 
       if (node.type === "text") {
         const topLeft = toScreenPoint(whiteboard, node.topLeft);
+        const size = getRectangleSize(node.topLeft, node.bottomRight);
 
-        const input = document.createElement("textarea");
-        input.addEventListener("click", (e) => e.stopPropagation());
-        input.addEventListener("mouseup", (e) => e.stopPropagation());
-        input.addEventListener("mousedown", (e) => e.stopPropagation());
-        input.addEventListener("wheel", (e) => e.stopPropagation());
-        input.placeholder = "Insert Text";
-        input.className =
-          "resize-none focus:resize h-9 w-24 px-2 py-1 rounded border border-dashed border-transparent focus:border-[#d0b465cc] focus:outline-none";
-        input.style.position = "absolute";
-        input.style.top = topLeft.y + "px";
-        input.style.left = topLeft.x + "px";
-        input.value = node.markdown;
-        renderer.textLayer.ref?.appendChild(input);
+        const textInput = document.createElement("textarea");
+        textInput.addEventListener("click", (e) => e.stopPropagation());
+        textInput.addEventListener("mouseup", (e) => e.stopPropagation());
+        textInput.addEventListener("mousedown", (e) => e.stopPropagation());
+        textInput.addEventListener("wheel", (e) => e.stopPropagation());
+        textInput.addEventListener("blur", () => {
+          if (!textInput.value) {
+            textInput.remove();
+            whiteboard.setNodes((old) => old.filter((n) => n.id !== node.id));
+          } else {
+            const rect = textInput.getBoundingClientRect();
+
+            whiteboard.setNodes((old) =>
+              old.map((n) => {
+                if (n.id !== node.id) return n;
+                return {
+                  ...n,
+                  name: textInput.value,
+                  markdown: textInput.value,
+                  bottomRight: { x: rect.right, y: rect.bottom },
+                };
+              })
+            );
+          }
+        });
+
+        textInput.placeholder = "Insert Text";
+        textInput.className =
+          "resize-none focus:resize h-9 w-24 px-2 py-1 rounded border border-dashed border-transparent focus:border-[#d0b465cc] focus:outline-none origin-top-left";
+        textInput.style.position = "absolute";
+        textInput.style.top = topLeft.y + "px";
+        textInput.style.left = topLeft.x + "px";
+        textInput.style.width = size.w + "px";
+        textInput.style.height = size.h + "px";
+        textInput.style.transform = "scale(" + whiteboard.zoom() + ")";
+        textInput.value = node.markdown;
+        renderer.textLayer.ref?.appendChild(textInput);
+
+        if (selectedNodeIds.includes(node.id)) {
+          textInput.focus();
+        }
       }
     }
   });
@@ -130,7 +174,14 @@ export function Page() {
                     : node.type === "rectangle"
                     ? <SquareIcon class="h-3 w-3 stroke-[#9f8f65]" />
                     : <SlashIcon class="h-3 w-3 stroke-[#9f8f65]" />}
-                  <span class="text-[#9f8f65]">{node.name}</span>
+                  <span
+                    class={cls(
+                      !input.selectedNodeIds().includes(node.id) &&
+                        "text-[#9f8f65]",
+                    )}
+                  >
+                    {node.name}
+                  </span>
                 </div>
               )}
             </For>
