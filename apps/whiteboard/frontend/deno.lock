@@ -5,6 +5,7 @@
     "npm:@tailwindcss/vite@^4.1.3": "4.1.3_vite@6.2.5__@types+node@22.12.0_@types+node@22.12.0",
     "npm:@types/node@*": "22.12.0",
     "npm:solid-js@^1.9.5": "1.9.5_seroval@1.2.1",
+    "npm:tailwind-merge@^3.1.0": "3.1.0",
     "npm:tailwindcss@^4.1.3": "4.1.3",
     "npm:typescript@^5.7.2": "5.8.3",
     "npm:ulid@3": "3.0.0",
@@ -687,6 +688,9 @@
     "source-map-js@1.2.1": {
       "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="
     },
+    "tailwind-merge@3.1.0": {
+      "integrity": "sha512-aV27Oj8B7U/tAOMhJsSGdWqelfmudnGMdXIlMnk1JfsjwSjts6o8HyfN7SFH3EztzH4YH8kk6GbLTHzITJO39Q=="
+    },
     "tailwindcss@4.1.3": {
       "integrity": "sha512-2Q+rw9vy1WFXu5cIxlvsabCwhU2qUwodGq03ODhLJ0jW4ek5BUtoCsnLB0qG+m8AHgEsSJcJGDSDe06FXlP74g=="
     },
@@ -759,6 +763,7 @@
     ],
     "packageJson": {
       "dependencies": [
+        "npm:tailwind-merge@^3.1.0",
         "npm:tailwindcss@^4.1.3"
       ]
     }

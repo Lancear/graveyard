@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-import { cls } from "./cls.ts";
+import { cls } from "../utils.ts";
 
 interface IconButtonProps {
   selected?: boolean;
@@ -9,7 +9,7 @@ interface IconButtonProps {
 
 export function IconButton(props: IconButtonProps) {
   return (
-    <div
+    <button
       onClick={props.onClick}
       onKeyPress={props.onClick}
       class={cls(
@@ -18,14 +18,22 @@ export function IconButton(props: IconButtonProps) {
       )}
     >
       {props.children}
-    </div>
+    </button>
   );
 }
 
-export function MousePointerIcon() {
+function iconStyles() {
+  return cls("h-4 w-4");
+}
+
+interface IconProps {
+  class?: string;
+}
+
+export function MousePointerIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-700 lucide lucide-mouse-pointer2-icon lucide-mouse-pointer-2"
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -39,10 +47,10 @@ export function MousePointerIcon() {
   );
 }
 
-export function HandIcon() {
+export function HandIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-700 lucide lucide-hand-icon lucide-hand"
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -59,10 +67,10 @@ export function HandIcon() {
   );
 }
 
-export function TypeIcon() {
+export function TypeIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-700 lucide lucide-type-icon lucide-type"
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -78,10 +86,10 @@ export function TypeIcon() {
   );
 }
 
-export function SquareIcon() {
+export function SquareIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-700 lucide lucide-square-icon lucide-square"
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -95,10 +103,10 @@ export function SquareIcon() {
   );
 }
 
-export function SlashIcon() {
+export function SlashIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-700 lucide lucide-slash-icon lucide-slash"
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -112,10 +120,10 @@ export function SlashIcon() {
   );
 }
 
-export function TableIcon() {
+export function TableIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-700 lucide lucide-table2-icon lucide-table-2"
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -129,10 +137,10 @@ export function TableIcon() {
   );
 }
 
-export function LayersIcon() {
+export function LayersIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-700 lucide lucide-layers-icon lucide-layers"
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -148,10 +156,49 @@ export function LayersIcon() {
   );
 }
 
-export function SearchIcon() {
+export function ZoomInIcon(props: IconProps) {
   return (
     <svg
-      class="h-4 w-4 stroke-stone-500 lucide lucide-search-icon lucide-search"
+      class={cls(iconStyles(), props.class)}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" x2="16.65" y1="21" y2="16.65" />
+      <line x1="11" x2="11" y1="8" y2="14" />
+      <line x1="8" x2="14" y1="11" y2="11" />
+    </svg>
+  );
+}
+
+export function ZoomOutIcon(props: IconProps) {
+  return (
+    <svg
+      class={cls(iconStyles(), props.class)}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" x2="16.65" y1="21" y2="16.65" />
+      <line x1="8" x2="14" y1="11" y2="11" />
+    </svg>
+  );
+}
+
+export function SearchIcon(props: IconProps) {
+  return (
+    <svg
+      class={cls(iconStyles(), props.class)}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"

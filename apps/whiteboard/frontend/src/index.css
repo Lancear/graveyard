@@ -1,14 +1,18 @@
 @import "tailwindcss";
 
 /*
-
   #fbf9f9 -> background
   #f1ebea -> pattern
   #e1c49d -> hover
   #d0b465 -> selected
   #c75249 -> red
-
+  #524319 -> text / icon
+  #9f8f65 -> text / icon light
 */
+
+body {
+  color: #524319;
+}
 
 .bg-canvas {
   background-color: #fbf9f9;

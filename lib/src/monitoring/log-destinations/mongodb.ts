@@ -4,12 +4,13 @@ import { Context } from "../context.ts";
 import { type LogDestination, type LogEntry, Logger } from "../logger.ts";
 import { ConsoleLogDestination } from "./console.ts";
 
+type MongoDbLogEntry = LogEntry & { _id?: string };
+
 interface MongoDbLogDestinationOptions {
   consoleLogs?: boolean;
 }
 
 export class MongoDbLogDestination implements LogDestination {
-  protected readonly dbCollection: Collection;
   protected readonly batcher: BackgroundBatcher<LogEntry>;
   protected readonly consoleLogDestination?: ConsoleLogDestination;
 
@@ -17,17 +18,20 @@ export class MongoDbLogDestination implements LogDestination {
     dbCollection: Collection,
     options?: MongoDbLogDestinationOptions,
   ) {
-    this.dbCollection = dbCollection;
     this.consoleLogDestination = options?.consoleLogs
       ? new ConsoleLogDestination()
       : undefined;
 
     const debugLogger = new Logger(new Context(), new ConsoleLogDestination());
+    const typedCollection = dbCollection as unknown as Collection<
+      MongoDbLogEntry
+    >;
 
     this.batcher = new BackgroundBatcher(async (logs: LogEntry[]) => {
       debugLogger.debug("Saving logs to mongodb...", { nrOfLogs: logs.length });
-      await dbCollection.insertMany(
-        logs.map((log: LogEntry & { _id?: string }) => {
+
+      await typedCollection.insertMany(
+        logs.map((log: MongoDbLogEntry) => {
           log._id = log.id;
           return log;
         }),
