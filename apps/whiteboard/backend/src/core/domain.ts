@@ -9,6 +9,8 @@ export interface Size {
 }
 
 export interface TextNode {
+  _id?: string;
+  whiteboardId?: string;
   nodeId: string;
   name: string;
   type: "text";
@@ -18,6 +20,8 @@ export interface TextNode {
 }
 
 export interface RectangleNode {
+  _id?: string;
+  whiteboardId?: string;
   nodeId: string;
   name: string;
   type: "rectangle";
@@ -29,6 +33,8 @@ export interface RectangleNode {
 }
 
 export interface LineNode {
+  _id?: string;
+  whiteboardId?: string;
   nodeId: string;
   name: string;
   type: "line";
@@ -42,10 +48,7 @@ export interface LineNode {
 export type WhiteboardNode = TextNode | RectangleNode | LineNode;
 
 export interface Whiteboard {
+  _id?: string;
   whiteboardId: string;
   name: string;
-}
-
-export interface WhiteboardWithNodes extends Whiteboard {
-  nodes: WhiteboardNode[];
 }

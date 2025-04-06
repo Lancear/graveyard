@@ -4,6 +4,7 @@ import {
   HandIcon,
   IconButton,
   MousePointerIcon,
+  SaveIcon,
   SlashIcon,
   SquareIcon,
   TypeIcon,
@@ -12,6 +13,7 @@ import {
 interface ToolbarProps {
   inputMode: Accessor<InputMode>;
   setInputMode: Setter<InputMode>;
+  save(): void;
 }
 
 export function Toolbar(props: ToolbarProps) {
@@ -33,6 +35,9 @@ export function Toolbar(props: ToolbarProps) {
         <span class="text-lg font-medium text-[#c75249]">
           Whiteboard
         </span>
+        <IconButton onClick={() => props.save()}>
+          <SaveIcon />
+        </IconButton>
       </div>
       <div class="flex gap-1">
         <IconButton

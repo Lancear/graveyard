@@ -106,7 +106,7 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
         );
 
         if (clickedNode) {
-          input.setSelectedNodeIds([clickedNode.id]);
+          input.setSelectedNodeIds([clickedNode.nodeId]);
         }
       } else {
         const topLeft = toWhiteboardPoint(whiteboard, rect.topLeft);
@@ -119,7 +119,7 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
           between(n.bottomRight.y, topLeft.y, bottomRight.y)
         );
 
-        input.setSelectedNodeIds(selectedNodes.map((n) => n.id));
+        input.setSelectedNodeIds(selectedNodes.map((n) => n.nodeId));
       }
     },
   },
@@ -138,23 +138,21 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
   },
   text: {
     onClick(click, { whiteboard, input }) {
-      input.setSelectedNodeIds([]);
-
       const zoom = whiteboard.zoom();
-      const id = ulid();
+      const nodeId = ulid();
       whiteboard.addNodeFromScreen({
-        id,
+        nodeId,
         name: "Text",
         type: "text",
         topLeft: { x: click.x - 8, y: click.y - 18 },
         bottomRight: {
-          x: click.x + (24 * 4 * zoom),
-          y: click.y + (9 * 4 * zoom),
+          x: click.x - 8 + (24 * 4 * zoom),
+          y: click.y - 18 + (9 * 4 * zoom),
         },
         markdown: "",
       });
 
-      input.setSelectedNodeIds([id]);
+      input.setSelectedNodeIds([nodeId]);
     },
   },
   rectangle: {
@@ -187,7 +185,7 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
 
       if (size.h * size.w > 4) {
         whiteboard.addNodeFromScreen({
-          id: ulid(),
+          nodeId: ulid(),
           name: "Rectangle",
           type: "rectangle",
           topLeft,
@@ -223,7 +221,7 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
       const { topLeft, bottomRight } = normalizeRectangle(mouseDown, mouseUp);
 
       whiteboard.addNodeFromScreen({
-        id: ulid(),
+        nodeId: ulid(),
         name: "Line",
         type: "line",
         topLeft,

@@ -1,4 +1,4 @@
-import { createEffect, For } from "solid-js";
+import { createEffect, createResource, For } from "solid-js";
 import {
   LayersIcon,
   SearchIcon,
@@ -8,6 +8,7 @@ import {
 } from "./components/icons.tsx";
 import { Toolbar } from "./components/toolbar.tsx";
 import { Zoombar } from "./components/zoombar.tsx";
+import { type WhiteboardNode, WhiteboardWithNodes } from "./domain.ts";
 import { createInputState, getHandlers, zoom } from "./logic/inputs.ts";
 import { createRendererState } from "./logic/renderer.ts";
 import {
@@ -18,6 +19,27 @@ import {
 } from "./logic/whiteboard.ts";
 import { cls } from "./utils.ts";
 
+const WHITEBOARD_ID = "01JR5WSSH9FWM7H36W4C3D8WZY";
+
+async function fetchWhiteboard(whiteboardId: string) {
+  const res = await fetch(`/api/whiteboards/${whiteboardId}`);
+  const jsonBody = await res.text();
+  return JSON.parse(jsonBody) as WhiteboardWithNodes;
+}
+
+async function saveWhiteboardNodes(
+  whiteboardId: string,
+  nodes: WhiteboardNode[],
+) {
+  const res = await fetch(`/api/whiteboards/${whiteboardId}/nodes`, {
+    method: "patch",
+    body: JSON.stringify(nodes),
+    headers: { "Content-Type": "application/json" },
+  });
+
+  console.log(res.statusText);
+}
+
 export function Page() {
   const whiteboard = createWhiteboardState();
   const input = createInputState();
@@ -27,6 +49,42 @@ export function Page() {
   });
 
   const handlers = getHandlers({ whiteboard, renderer, input });
+
+  const [savedWhiteboard] = createResource(WHITEBOARD_ID, fetchWhiteboard);
+
+  createEffect(() => {
+    const savedNodes = savedWhiteboard()?.nodes;
+    if (savedNodes) whiteboard.setNodes(savedNodes);
+  });
+
+  createEffect(() => {
+    try {
+      const state = localStorage.getItem(
+        `/whiteboards/${WHITEBOARD_ID}/localState`,
+      );
+
+      if (state) {
+        const { zoom, offset } = JSON.parse(state);
+        whiteboard.setZoom(zoom);
+        whiteboard.setOffset(offset);
+      }
+    } catch (err) {
+      console.error("Failed to load local whiteboard state", err);
+    }
+  });
+
+  createEffect(() => {
+    try {
+      const zoom = whiteboard.zoom();
+      const offset = whiteboard.offset();
+      localStorage.setItem(
+        `/whiteboards/${WHITEBOARD_ID}/localState`,
+        JSON.stringify({ zoom, offset }),
+      );
+    } catch (err) {
+      console.error("Failed to save local whiteboard state", err);
+    }
+  });
 
   createEffect(function drawNodes() {
     const ctx = renderer.shapeLayer();
@@ -48,7 +106,7 @@ export function Page() {
         const topLeft = toScreenPoint(whiteboard, node.topLeft);
         const { w, h } = getNodeScreenSize(whiteboard, node);
 
-        if (selectedNodeIds.includes(node.id)) {
+        if (selectedNodeIds.includes(node.nodeId)) {
           ctx.strokeStyle = "#c75249";
         }
 
@@ -62,7 +120,7 @@ export function Page() {
         const start = toScreenPoint(whiteboard, node.start);
         const end = toScreenPoint(whiteboard, node.end);
 
-        if (selectedNodeIds.includes(node.id)) {
+        if (selectedNodeIds.includes(node.nodeId)) {
           ctx.strokeStyle = "#c75249";
         }
 
@@ -78,20 +136,35 @@ export function Page() {
         const size = getRectangleSize(node.topLeft, node.bottomRight);
 
         const textInput = document.createElement("textarea");
-        textInput.addEventListener("click", (e) => e.stopPropagation());
-        textInput.addEventListener("mouseup", (e) => e.stopPropagation());
-        textInput.addEventListener("mousedown", (e) => e.stopPropagation());
-        textInput.addEventListener("wheel", (e) => e.stopPropagation());
+        textInput.addEventListener("click", (e) => {
+          if (textInput === document.activeElement) e.stopPropagation();
+          else e.preventDefault();
+        });
+        textInput.addEventListener("mouseup", (e) => {
+          if (textInput === document.activeElement) e.stopPropagation();
+          else e.preventDefault();
+        });
+        textInput.addEventListener("mousedown", (e) => {
+          if (textInput === document.activeElement) e.stopPropagation();
+          else e.preventDefault();
+        });
+        textInput.addEventListener("wheel", (e) => {
+          if (textInput === document.activeElement) e.stopPropagation();
+          else e.preventDefault();
+        });
         textInput.addEventListener("blur", () => {
           if (!textInput.value) {
             textInput.remove();
-            whiteboard.setNodes((old) => old.filter((n) => n.id !== node.id));
+            whiteboard.setNodes((old) =>
+              old.filter((n) => n.nodeId !== node.nodeId)
+            );
           } else {
             const rect = textInput.getBoundingClientRect();
 
+            input.setSelectedNodeIds([]);
             whiteboard.setNodes((old) =>
               old.map((n) => {
-                if (n.id !== node.id) return n;
+                if (n.nodeId !== node.nodeId) return n;
                 return {
                   ...n,
                   name: textInput.value,
@@ -105,7 +178,7 @@ export function Page() {
 
         textInput.placeholder = "Insert Text";
         textInput.className =
-          "resize-none focus:resize h-9 w-24 px-2 py-1 rounded border border-dashed border-transparent focus:border-[#d0b465cc] focus:outline-none origin-top-left";
+          "resize-none focus:resize h-9 w-24 px-2 py-1 rounded border border-dashed border-transparent focus:border-[#d0b465cc] focus:outline-none origin-top-left cursor-[inherit] focus:cursor-text";
         textInput.style.position = "absolute";
         textInput.style.top = topLeft.y + "px";
         textInput.style.left = topLeft.x + "px";
@@ -115,7 +188,9 @@ export function Page() {
         textInput.value = node.markdown;
         renderer.textLayer.ref?.appendChild(textInput);
 
-        if (selectedNodeIds.includes(node.id)) {
+        if (
+          selectedNodeIds.length === 1 && selectedNodeIds.includes(node.nodeId)
+        ) {
           textInput.focus();
         }
       }
@@ -124,7 +199,7 @@ export function Page() {
 
   return (
     <div
-      class="relative h-screen w-full bg-canvas select-none"
+      class="relative h-screen w-full overflow-hidden bg-canvas select-none"
       {...handlers}
     >
       <canvas
@@ -144,7 +219,7 @@ export function Page() {
       <div
         ref={renderer.textLayer.ref}
         class={cls(
-          "absolute top-0 left-0 h-full w-full",
+          "absolute top-0 left-0 h-full w-full cursor-default",
           input.inputMode() === "move" && "cursor-grab",
           input.inputMode() === "move" && input.mouseDownEvent() &&
             "cursor-grabbing",
@@ -176,7 +251,7 @@ export function Page() {
                     : <SlashIcon class="h-3 w-3 stroke-[#9f8f65]" />}
                   <span
                     class={cls(
-                      !input.selectedNodeIds().includes(node.id) &&
+                      !input.selectedNodeIds().includes(node.nodeId) &&
                         "text-[#9f8f65]",
                     )}
                   >
@@ -192,6 +267,11 @@ export function Page() {
         <Toolbar
           inputMode={input.inputMode}
           setInputMode={input.setInputMode}
+          save={() => {
+            const nodes = whiteboard.nodes();
+            console.log(nodes);
+            saveWhiteboardNodes(WHITEBOARD_ID, nodes);
+          }}
         />
       </header>
       <div class="absolute z-10 top-4 right-4">
