@@ -2,9 +2,9 @@
 
 /*
   #fbf9f9 -> background
-  #f1ebea -> pattern
-  #e1c49d -> hover
-  #d0b465 -> selected
+  #f1ebea -> pattern, hover
+  #f4e5dc -> selected
+  #dcab8e -> brown
   #c75249 -> red
   #524319 -> text / icon
   #9f8f65 -> text / icon light
@@ -12,6 +12,11 @@
 
 body {
   color: #524319;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
 }
 
 .bg-canvas {

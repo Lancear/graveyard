@@ -1,4 +1,5 @@
 {
+  "eslint.enable": false,
   "deno.enable": true,
   "deno.lint": false,
   "oxc.enable": true,

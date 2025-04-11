@@ -4,6 +4,10 @@ export function cls(...args: unknown[]) {
   return twMerge(args.filter((a) => a && typeof a === "string").join(" "));
 }
 
+export function px(px: number) {
+  return px + "px";
+}
+
 export function toFixed(num: number, precision: number) {
   const factor = 10 ** precision;
   return Math.round(num * factor) / factor;

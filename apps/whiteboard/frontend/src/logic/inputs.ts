@@ -3,6 +3,7 @@ import { createSignal } from "solid-js";
 import { ulid } from "ulid";
 import type { Point } from "../domain.ts";
 import { between, toFixed } from "../utils.ts";
+import { BackgroundBatcher } from "../utils/async.ts";
 import type { RendererState } from "./renderer.ts";
 import {
   getRectangleSize,
@@ -97,18 +98,7 @@ const INPUT_MODE_HANDLERS: Record<InputMode, InputHandlers> = {
       const rect = normalizeRectangle(mouseUp, mouseDown);
       const size = getRectangleSize(rect.topLeft, rect.bottomRight);
 
-      if (size.h * size.w < 4) {
-        const whiteboardClick = toWhiteboardPoint(whiteboard, mouseUp);
-
-        const clickedNode = whiteboard.nodes().find((n) =>
-          between(whiteboardClick.x, n.topLeft.x, n.bottomRight.x) &&
-          between(whiteboardClick.y, n.topLeft.y, n.bottomRight.y)
-        );
-
-        if (clickedNode) {
-          input.setSelectedNodeIds([clickedNode.nodeId]);
-        }
-      } else {
+      if (size.h * size.w >= 4) {
         const topLeft = toWhiteboardPoint(whiteboard, rect.topLeft);
         const bottomRight = toWhiteboardPoint(whiteboard, rect.bottomRight);
 
@@ -260,6 +250,12 @@ export function zoom(
   }));
 }
 
+const batcher = new BackgroundBatcher<
+  { e: WheelEvent; state: InputHandlerState }
+>(async ([{ e, state }]) => {
+  zoom(state, e.deltaY > 0 ? -0.1 : 0.1, e);
+}, { collectTime: 50 });
+
 export function getHandlers(state: InputHandlerState) {
   return {
     onClick(e: MouseEvent) {
@@ -291,7 +287,18 @@ export function getHandlers(state: InputHandlerState) {
       );
     },
     onWheel(e: WheelEvent) {
-      zoom(state, e.deltaY > 0 ? -0.1 : 0.1, e);
+      if (!Number.isInteger(e.deltaY)) {
+        e.preventDefault();
+        batcher.addTask({ e, state });
+      }
+
+      if (Number.isInteger(e.deltaX) || Number.isInteger(e.deltaY)) {
+        e.preventDefault();
+        state.whiteboard.setOffset((old) => ({
+          x: old.x + e.deltaX,
+          y: old.y + e.deltaY,
+        }));
+      }
     },
   };
 }

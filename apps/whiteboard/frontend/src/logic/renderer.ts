@@ -24,28 +24,17 @@ export function createCanvasContextRef() {
 
 export interface RendererState {
   size: Accessor<Size>;
-  shapeLayer: Accessor<CanvasRenderingContext2D | undefined>;
   shapeEditingLayer: Accessor<CanvasRenderingContext2D | undefined>;
-  textLayer: RefContainer<HTMLDivElement | undefined>;
-  shapeCanvas: RefContainer<HTMLCanvasElement | undefined>;
   shapeEditingCanvas: RefContainer<HTMLCanvasElement | undefined>;
 }
 
 export function createRendererState(initialSize: Size) {
-  const [shapeCanvas, shapeLayer] = createCanvasContextRef();
   const [shapeEditingCanvas, shapeEditingLayer] = createCanvasContextRef();
-  const textLayer = createRef<HTMLDivElement>();
-
   const [size, setSize] = createSignal(initialSize);
 
   createEffect(() => {
     function onResize() {
       const newSize = { w: window.innerWidth, h: window.innerHeight };
-
-      if (shapeCanvas.ref) {
-        shapeCanvas.ref.height = newSize.h;
-        shapeCanvas.ref.width = newSize.w;
-      }
 
       if (shapeEditingCanvas.ref) {
         shapeEditingCanvas.ref.height = newSize.h;
@@ -64,10 +53,7 @@ export function createRendererState(initialSize: Size) {
 
   return {
     size,
-    shapeLayer,
     shapeEditingLayer,
-    textLayer,
-    shapeCanvas,
     shapeEditingCanvas,
   };
 }

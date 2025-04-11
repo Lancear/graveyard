@@ -10,7 +10,7 @@ interface ZoombarProps {
 export function Zoombar(props: ZoombarProps) {
   return (
     <div
-      class="py-2 pl-4 pr-2 flex gap-4 items-center rounded-md bg-white shadow-sm"
+      class="py-1 pl-3 pr-1 flex gap-4 items-center rounded-md bg-white shadow-sm"
       // eslint-disable-next-line click-events-have-key-events
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
@@ -18,9 +18,10 @@ export function Zoombar(props: ZoombarProps) {
       onWheel={(e) => e.stopPropagation()}
     >
       <span class="inline-block w-7 text-end font-medium text-[#524319]">
-        {props.zoom() + "x"}
+        {props.zoom()}
+        {Number.isInteger(props.zoom()) && ".0"}x
       </span>
-      <div class="flex gap-1">
+      <div class="flex gap-0.5">
         <IconButton onClick={props.zoomIn}>
           <ZoomInIcon />
         </IconButton>

@@ -40,16 +40,18 @@ export function createWhiteboardState() {
 }
 
 export function toWhiteboardPoint(whiteboard: WhiteboardState, point: Point) {
-  const zoom = whiteboard.zoom();
-  const unzoomed = { x: point.x * (1 / zoom), y: point.y * (1 / zoom) };
-
   const offset = whiteboard.offset();
-  return { x: unzoomed.x + offset.x, y: unzoomed.y + offset.y };
+  const unmoved = { x: point.x + offset.x, y: point.y + offset.y };
+
+  const zoom = whiteboard.zoom();
+  const unzoomed = { x: unmoved.x * (1 / zoom), y: unmoved.y * (1 / zoom) };
+  return unzoomed;
 }
 
 export function toScreenPoint(whiteboard: WhiteboardState, point: Point) {
   const zoom = whiteboard.zoom();
   const zoomed = { x: point.x * zoom, y: point.y * zoom };
+
   const offset = whiteboard.offset();
   const moved = { x: zoomed.x - offset.x, y: zoomed.y - offset.y };
   return moved;
